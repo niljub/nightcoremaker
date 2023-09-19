@@ -1,31 +1,69 @@
 <script>
     import * as Tone from "tone";
     import { onMount } from "svelte";
-    import { slide } from "svelte/transition";
 
     let player;
     let isPlaying = false;
-    let audiofile;
-    let audiourl;
+    let audioFile;
+    let audioUrl;
     let playbackRate = 1.0;
     let pitchShift; 
-
+    let showPlayButton = false;
     let pitchRate = 0;
+    let volume = 0;
+    let playerInitialized = false;
 
+
+
+    function handleFileChange(e) {
+        const selectedFile = e.target.files[0];
+
+        if (selectedFile) {
+            // Store the selected file in the audiofile variable
+            audioFile = selectedFile;
+
+            // You can use the 'audiofile' variable to do further processing
+            console.log("Selected audio file:", audioFile);
+
+            audioUrl = URL.createObjectURL(audioFile);
+
+            if (!playerInitialized){
+                initializeTone();
+            }else{
+                player.stop();
+                console.log('stop');
+                player.load(audioUrl);
+
+                if(isPlaying){
+                    isPlaying=false;
+                }
+                
+            }
+            
+            setTimeout(function(){
+                showPlayButton = true;
+            }, 100);
+
+        }
+    }
+
+
+
+    
     async function initializeTone() {
         await Tone.start();
         
         pitchShift = new Tone.PitchShift().toDestination();
-        player = new Tone.Player(audiourl).connect(pitchShift);
+        player = new Tone.Player(audioUrl).connect(pitchShift);
 
         player.loop = true;
 
         const toneFFT = new Tone.FFT();
 		pitchShift.connect(toneFFT);
         
-
-        console.log(player);
         player.autostart = false;
+
+        playerInitialized = true;
     }
 
     function togglePlayback() {
@@ -41,20 +79,8 @@
         console.log("test");
     });
 
-    function handleFileChange(e) {
-        const selectedFile = e.target.files[0];
 
-        if (selectedFile) {
-            // Store the selected file in the audiofile variable
-            audiofile = selectedFile;
-
-            // You can use the 'audiofile' variable to do further processing
-            console.log("Selected audio file:", audiofile);
-
-            audiourl = URL.createObjectURL(audiofile);
-            initializeTone();
-        }
-    }
+    
 
     function faster(e) {
         player.playbackRate = playbackRate;
@@ -72,6 +98,10 @@
         console.log(url);
 
         
+    }
+
+    function changeVolume() {
+        player.volume.value = volume;
     }
 </script>
 
@@ -109,8 +139,24 @@
 <output>1.0</output>
 
 
-{#if player}
-    <button on:click={togglePlayback}>
+
+<br>
+<br>
+<h3>Lautstärke</h3>
+<input
+    bind:value={volume}
+    step="1"
+    min="-5"
+    max="5"
+    type="range"
+    on:click={changeVolume}
+    oninput="this.nextElementSibling.value = this.value"
+/>
+<output>1.0</output>
+
+
+{#if showPlayButton}
+    <button on:click={togglePlayback} >
         {#if isPlaying}
             Pause
         {:else}
